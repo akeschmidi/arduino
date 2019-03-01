@@ -1,3 +1,3 @@
-# Arduino Proojects 
+# Arduino Projects 
 
 ## have a great day 
