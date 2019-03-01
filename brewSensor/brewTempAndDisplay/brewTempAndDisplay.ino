@@ -13,10 +13,12 @@ OneWire oneWire(ONE_WIRE_BUS);
 // Pass our oneWire reference to Dallas Temperature sensor 
 DallasTemperature sensors(&oneWire);
 Adafruit_7segment matrix = Adafruit_7segment();
+
 void setup(void)
 {
   // Start serial communication for debugging purposes
   Serial.begin(9600);
+  
   // Start up the library
   sensors.begin();
 
@@ -31,16 +33,15 @@ void setup(void)
 
 void loop(void){ 
 
+
   sensors.requestTemperatures(); 
   
   //Serial.print("Sensor 1 Celsius-Temperatur: ");
   //Serial.println(sensors.getTempCByIndex(0)); 
+
+  
   matrix.print(sensors.getTempCByIndex(0));
   matrix.writeDisplay();
   delay(5000);
  
-//  Serial.print("Sensor 2 Celsius-Temperatur: ");
-//  Serial.println(sensors.getTempCByIndex(1)); 
-
-
 }
