@@ -3,20 +3,20 @@ int soilMoisturePin2 = 3;
 int soilMoisturePin3 = A3;
 int baudrate = 9600;
 
-//Transistor 'Base' pin or input pin of motor driver ic to Arduino PWM Digital Pin 3
+
 const int motorPin1 = 9;
 const int motorPin2 = 10;
 
-int Speed; //Variable to store Speed, by defaul 0 PWM
+int Speed; //Motorgeschwindigkeit 
 int flag;
 
 void setup() 
 {
-  pinMode(motorPin1, OUTPUT); //Set pin 3 as an OUTPUT
+  pinMode(motorPin1, OUTPUT); 
   pinMode(motorPin2, OUTPUT);
   
   Serial.begin( baudrate );
-  while(!Serial); //Waiting for Serial connection
+  while(!Serial); 
 
 }
 
@@ -44,23 +44,24 @@ int readSoilMoisture()
 void loop() 
 {
   int value_water = readSoilMoisture(); 
-  String water = String((int)((((double)value_water/1023.0)*100.0)));//Convert Raw value to percentage. This is a generic calculation, depending on raw values from 0 to 1023. 
-  Serial.print("Soil moisture: ");
+  //Werte von 0 zu 1023
+  String water = String((int)((((double)value_water/1023.0)*100.0)));  
+  Serial.print("Bodenfeuchtigkeit: ");
   Serial.print(water);
-  Serial.print("% Raw value: ");
+  Serial.print("% Rohwert: ");
   Serial.println(value_water);
   Serial.println(motorPin1);
 
-//Check if incoming data is available:
+//Warte auf Daten
     if (water.toInt() < 30)
     {
-      Serial.println("Too dry, we should water it.");
+      Serial.println("Zu trocken, wir sollten es giessen...");
       Speed = 100;
       flag=0;
     }
     else 
     {
-      Serial.println("Still wet, no need to water it.");
+      Serial.println("Noch nass, keine Notwendigkeit, es zu giessen.");
       Speed = 0;
     }
 
@@ -72,7 +73,7 @@ void loop()
       
       if (flag==0)
       { 
-        Serial.print("Motor spinning with ");
+        Serial.print("Motor läuft mit: ");
         Serial.print(Speed);
         Serial.println(" PWM");
         flag=1;
