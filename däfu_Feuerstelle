@@ -1,0 +1,120 @@
+// Feuer: Fire2012 (Kriegsman) + schwarze Strahlung
+// Unten D0 = Feuer | Oben D4 = warmes Licht
+
+#include <Adafruit_NeoPixel.h>
+#include <math.h>
+
+const int PIN_FIRE = D0;
+const int PIN_WARM = D4;
+const int N_FIRE   = 8;
+const int N_WARM   = 8;
+const int SW_FIRE  = D9;
+const int SW_WARM  = D7;
+
+const bool FORCE_ON = true;
+
+// Fire2012: weniger COOLING = höhere Flammen, mehr SPARKING = wilder
+const int COOLING  = 8;
+const int SPARKING = 100;
+
+Adafruit_NeoPixel fire(N_FIRE, PIN_FIRE, NEO_GRB + NEO_KHZ800);
+Adafruit_NeoPixel warm(N_WARM, PIN_WARM, NEO_GRB + NEO_KHZ800);
+
+byte heat[N_FIRE];
+
+byte qsub8(byte a, byte b) { return (a > b) ? a - b : 0; }
+byte qadd8(byte a, byte b) {
+  unsigned int s = a + b;
+  return (s > 255) ? 255 : s;
+}
+
+// Schwarzkörper: kalt schwarz → rot → orange → gelb → weissheiss
+uint32_t heatColor(byte t) {
+  byte t192 = (t * 191) / 255;
+  byte ramp = (t192 & 0x3F) << 2;   // 0..252
+  if (t192 & 0x80)      return fire.Color(255, 255, ramp);      // gelb → weiss
+  else if (t192 & 0x40) return fire.Color(255, ramp, 0);        // rot → gelb
+  else                  return fire.Color(ramp, 0, 0);          // schwarz → rot
+}
+
+void fire2012() {
+  // 1) Luft kühlt jede Zelle etwas
+  for (int i = 0; i < N_FIRE; i++) {
+    byte cool = random(0, ((COOLING * 10) / N_FIRE) + 2);
+    heat[i] = qsub8(heat[i], cool);
+  }
+
+  // 2) Hitze steigt von der Mitte nach aussen (Feuerstelle)
+  byte h[N_FIRE];
+  for (int i = 0; i < N_FIRE; i++) h[i] = heat[i];
+  // links: Index 0 ist die Spitze
+  for (int k = 0; k <= 2; k++) {
+    heat[k] = (h[k] + h[k + 1] + h[k + 2]) / 3;
+  }
+  // rechts: Index 7 ist die Spitze
+  for (int k = 7; k >= 5; k--) {
+    heat[k] = (h[k] + h[k - 1] + h[k - 2]) / 3;
+  }
+  heat[3] = (h[2] + h[3] + h[4]) / 3;
+  heat[4] = (h[3] + h[4] + h[5]) / 3;
+
+  // 3) Funken in der Glut (Mitte)
+  if (random(255) < SPARKING) {
+    int y = 2 + random(0, 4);          // LED 2..5
+    heat[y] = qadd8(heat[y], random(160, 255));
+  }
+  if (random(255) < 50) {              // seltener zweiter Zungen-Funken
+    int y = random(0, N_FIRE);
+    heat[y] = qadd8(heat[y], random(100, 180));
+  }
+
+  // 4) Hitze → Farbe
+  for (int i = 0; i < N_FIRE; i++) {
+    fire.setPixelColor(i, heatColor(heat[i]));
+  }
+  fire.show();
+}
+
+void setup() {
+  pinMode(SW_FIRE, INPUT_PULLUP);
+  pinMode(SW_WARM, INPUT_PULLUP);
+
+  fire.begin();
+  warm.begin();
+  fire.setBrightness(255);
+  warm.setBrightness(100);
+  fire.clear();
+  warm.clear();
+  fire.show();
+  warm.show();
+
+  for (int i = 0; i < N_FIRE; i++) heat[i] = 80;
+}
+
+void loop() {
+  bool fireOn = FORCE_ON || (digitalRead(SW_FIRE) == LOW);
+  bool warmOn = FORCE_ON || (digitalRead(SW_WARM) == LOW);
+
+  if (fireOn) {
+    fire2012();
+  } else {
+    fire.clear();
+    fire.show();
+  }
+
+  if (warmOn) {
+    float breath = 0.88 + 0.12 * (0.5 + 0.5 * sin(millis() / 1400.0));
+    int r = (int)(255 * breath);
+    int g = (int)(110 * breath);
+    int b = (int)(20 * breath);
+    for (int i = 0; i < N_WARM; i++) {
+      warm.setPixelColor(i, r, g, b);
+    }
+    warm.show();
+  } else {
+    warm.clear();
+    warm.show();
+  }
+
+  delay(16);   // ~60 Bilder/s, wie echtes Flackern
+}
